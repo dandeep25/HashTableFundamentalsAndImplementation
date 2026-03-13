@@ -5,7 +5,7 @@ class Transaction {
     int amount;
     String merchant;
     String account;
-    int time; // minutes from start of day
+    int time;
 
     Transaction(int id, int amount, String merchant, String account, int time) {
         this.id = id;
@@ -20,12 +20,12 @@ class Transaction {
 
     List<Transaction> transactions = new ArrayList<>();
 
-    // Add transaction
+    
     public void addTransaction(Transaction t) {
         transactions.add(t);
     }
 
-    // Classic Two-Sum
+   
     public void findTwoSum(int target) {
 
         HashMap<Integer, Transaction> map = new HashMap<>();
@@ -47,7 +47,7 @@ class Transaction {
         }
     }
 
-    // Two-Sum within 1 hour (60 minutes)
+    
     public void twoSumWithinHour(int target) {
 
         HashMap<Integer, Transaction> map = new HashMap<>();
@@ -71,7 +71,7 @@ class Transaction {
         }
     }
 
-    // Duplicate detection
+   
     public void detectDuplicates() {
 
         HashMap<String, List<Transaction>> map = new HashMap<>();
