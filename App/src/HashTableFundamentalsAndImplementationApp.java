@@ -1,74 +1,75 @@
 import java.util.*;
 
-class DNSCache {
+class PlagiarismDetector {
 
-    class DNSEntry {
-        String domain;
-        String ip;
-        long expiryTime;
+    private final int N = 5; // n-gram size
+    private Map<String, Set<String>> nGramIndex = new HashMap<>();
 
-        DNSEntry(String domain, String ip, long ttl) {
-            this.domain = domain;
-            this.ip = ip;
-            this.expiryTime = System.currentTimeMillis() + ttl * 1000;
+    public void analyzeDocument(String docId, String content) {
+        List<String> words = tokenize(content);
+        int totalNGrams = 0;
+
+        for (int i = 0; i <= words.size() - N; i++) {
+            String ngram = buildNGram(words, i, N);
+            nGramIndex.computeIfAbsent(ngram, k -> new HashSet<>()).add(docId);
+            totalNGrams++;
         }
 
-        boolean isExpired() {
-            return System.currentTimeMillis() > expiryTime;
-        }
+        System.out.println("Extracted " + totalNGrams + " n-grams");
     }
 
-    private int capacity;
-    private Map<String, DNSEntry> cache;
-    private int hits = 0;
-    private int misses = 0;
+    public Map<String, Double> findSimilarDocuments(String docId, String content) {
+        List<String> words = tokenize(content);
+        Map<String, Integer> matchCount = new HashMap<>();
+        int totalNGrams = 0;
 
-    public DNSCache(int capacity) {
-        this.capacity = capacity;
-        this.cache = new LinkedHashMap<String, DNSEntry>(capacity, 0.75f, true) {
-            protected boolean removeEldestEntry(Map.Entry<String, DNSEntry> eldest) {
-                return size() > DNSCache.this.capacity;
+        for (int i = 0; i <= words.size() - N; i++) {
+            String ngram = buildNGram(words, i, N);
+            Set<String> docs = nGramIndex.getOrDefault(ngram, Collections.emptySet());
+            for (String otherDocId : docs) {
+                if (!otherDocId.equals(docId)) {
+                    matchCount.put(otherDocId, matchCount.getOrDefault(otherDocId, 0) + 1);
+                }
             }
-        };
-    }
-
-    public synchronized String resolve(String domain) {
-        DNSEntry entry = cache.get(domain);
-
-        if (entry != null && !entry.isExpired()) {
-            hits++;
-            return "Cache HIT → " + entry.ip;
+            totalNGrams++;
         }
 
-        if (entry != null && entry.isExpired()) {
-            cache.remove(domain);
+        Map<String, Double> similarity = new HashMap<>();
+        for (Map.Entry<String, Integer> entry : matchCount.entrySet()) {
+            double simPercent = (entry.getValue() * 100.0) / totalNGrams;
+            similarity.put(entry.getKey(), simPercent);
         }
-
-        misses++;
-        String ip = queryUpstream(domain);
-        cache.put(domain, new DNSEntry(domain, ip, 300));
-        return "Cache MISS → " + ip;
+        return similarity;
     }
 
-    private String queryUpstream(String domain) {
-        Random r = new Random();
-        return "172.217.14." + (r.nextInt(200) + 1);
+    private List<String> tokenize(String content) {
+        return Arrays.asList(content.toLowerCase().split("\\W+"));
     }
 
-    public String getCacheStats() {
-        int total = hits + misses;
-        double hitRate = total == 0 ? 0 : ((double) hits / total) * 100;
-        return "Hit Rate: " + hitRate + "%";
+    private String buildNGram(List<String> words, int start, int n) {
+        StringBuilder sb = new StringBuilder();
+        for (int i = start; i < start + n; i++) {
+            sb.append(words.get(i));
+            if (i < start + n - 1) sb.append(" ");
+        }
+        return sb.toString();
     }
 
-    public static void main(String[] args) throws InterruptedException {
-        DNSCache cache = new DNSCache(5);
+    public static void main(String[] args) {
+        PlagiarismDetector detector = new PlagiarismDetector();
 
-        System.out.println(cache.resolve("google.com"));
-        System.out.println(cache.resolve("google.com"));
-        System.out.println(cache.resolve("openai.com"));
-        System.out.println(cache.resolve("google.com"));
+        String docA = "this is a sample document to test plagiarism detection system";
+        String docB = "this is another sample document to detect plagiarism issues";
+        String docC = "completely different text that has no match";
 
-        System.out.println(cache.getCacheStats());
+        detector.analyzeDocument("essay_089.txt", docA);
+        detector.analyzeDocument("essay_092.txt", docB);
+        detector.analyzeDocument("essay_123.txt", docC);
+
+        Map<String, Double> similarities = detector.findSimilarDocuments("essay_123.txt", docC);
+        for (var e : similarities.entrySet()) {
+            System.out.printf("Found %.0f matching n-grams with \"%s\"\nSimilarity: %.1f%%\n",
+                    e.getValue() * docC.split("\\W+").length, e.getKey(), e.getValue());
+        }
     }
 }
