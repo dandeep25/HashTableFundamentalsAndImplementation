@@ -1,6 +1,6 @@
 import java.util.*;
 
-// Vehicle record
+
 class Vehicle {
     String licensePlate;
     long entryTime;
@@ -11,7 +11,7 @@ class Vehicle {
     }
 }
 
-public class ParkingLotSystem {
+ class ParkingLotSystem {
 
     static final int SIZE = 500;
 
@@ -21,12 +21,12 @@ public class ParkingLotSystem {
     int totalProbes = 0;
     int totalParks = 0;
 
-    // Hash function
+    /
     private int hash(String licensePlate) {
         return Math.abs(licensePlate.hashCode()) % SIZE;
     }
 
-    // Park vehicle using linear probing
+    
     public void parkVehicle(String plate) {
 
         int index = hash(plate);
@@ -53,7 +53,7 @@ public class ParkingLotSystem {
                 " (" + probes + " probes)");
     }
 
-    // Exit vehicle
+   
     public void exitVehicle(String plate) {
 
         int index = hash(plate);
@@ -89,7 +89,6 @@ public class ParkingLotSystem {
         System.out.println("Vehicle not found!");
     }
 
-    // Find nearest available spot
     public void findNearestSpot() {
 
         for (int i = 0; i < SIZE; i++) {
@@ -103,7 +102,7 @@ public class ParkingLotSystem {
         System.out.println("Parking Full!");
     }
 
-    // Parking statistics
+   
     public void getStatistics() {
 
         double occupancy = ((double) occupiedSpots / SIZE) * 100;
