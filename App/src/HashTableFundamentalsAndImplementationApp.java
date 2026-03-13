@@ -1,111 +1,146 @@
-import java.util.concurrent.*;
-import java.util.concurrent.atomic.AtomicInteger;
+import java.util.*;
 
-class TokenBucket {
-    private int maxTokens;
-    private double refillRate;
-    private double tokens;
-    private long lastRefillTime;
+// Trie Node
+class TrieNode {
+    Map<Character, TrieNode> children;
+    boolean isEnd;
 
-    public TokenBucket(int maxTokens, double refillRate) {
-        this.maxTokens = maxTokens;
-        this.refillRate = refillRate;
-        this.tokens = maxTokens;
-        this.lastRefillTime = System.currentTimeMillis();
+    TrieNode() {
+        children = new HashMap<>();
+        isEnd = false;
+    }
+}
+
+// Autocomplete System
+class AutocompleteSystem {
+
+    TrieNode root;
+    HashMap<String, Integer> frequencyMap;
+
+    public AutocompleteSystem() {
+        root = new TrieNode();
+        frequencyMap = new HashMap<>();
     }
 
-    public synchronized Result allowRequest() {
-        refill();
-        if (tokens >= 1) {
-            tokens -= 1;
-            return new Result(true, (int) tokens, getRetryAfter());
-        } else {
-            return new Result(false, 0, getRetryAfter());
+    // Insert query
+    public void insert(String query) {
+
+        TrieNode node = root;
+
+        for (char c : query.toCharArray()) {
+            node.children.putIfAbsent(c, new TrieNode());
+            node = node.children.get(c);
+        }
+
+        node.isEnd = true;
+
+        frequencyMap.put(query, frequencyMap.getOrDefault(query, 0) + 1);
+    }
+
+    // Update frequency when searched again
+    public void updateFrequency(String query) {
+        insert(query);
+    }
+
+    // Search suggestions
+    public List<String> search(String prefix) {
+
+        TrieNode node = root;
+
+        for (char c : prefix.toCharArray()) {
+            if (!node.children.containsKey(c)) {
+                return new ArrayList<>();
+            }
+            node = node.children.get(c);
+        }
+
+        List<String> results = new ArrayList<>();
+
+        dfs(node, prefix, results);
+
+        // Sort by frequency (highest first)
+        results.sort((a, b) -> frequencyMap.get(b) - frequencyMap.get(a));
+
+        if (results.size() > 10)
+            return results.subList(0, 10);
+
+        return results;
+    }
+
+    // DFS to collect words
+    private void dfs(TrieNode node, String word, List<String> results) {
+
+        if (node.isEnd) {
+            results.add(word);
+        }
+
+        for (char c : node.children.keySet()) {
+            dfs(node.children.get(c), word + c, results);
         }
     }
-
-    private void refill() {
-        long now = System.currentTimeMillis();
-        double seconds = (now - lastRefillTime) / 1000.0;
-        double refill = seconds * refillRate;
-        if (refill > 0) {
-            tokens = Math.min(maxTokens, tokens + refill);
-            lastRefillTime = now;
-        }
-    }
-
-    private long getRetryAfter() {
-        if (tokens >= 1) return 0;
-        double needed = 1 - tokens;
-        return (long) Math.ceil(needed / refillRate);
-    }
-
-    public synchronized Status getStatus() {
-        refill();
-        int used = maxTokens - (int) tokens;
-        long reset = System.currentTimeMillis() / 1000 + (long)((maxTokens - tokens) / refillRate);
-        return new Status(used, maxTokens, reset);
-    }
 }
 
-class Result {
-    boolean allowed;
-    int remaining;
-    long retryAfter;
+// Main class
+public class Main {
 
-    Result(boolean allowed, int remaining, long retryAfter) {
-        this.allowed = allowed;
-        this.remaining = remaining;
-        this.retryAfter = retryAfter;
-    }
-}
-
-class Status {
-    int used;
-    int limit;
-    long reset;
-
-    Status(int used, int limit, long reset) {
-        this.used = used;
-        this.limit = limit;
-        this.reset = reset;
-    }
-}
-
-class RateLimiter {
-    private ConcurrentHashMap<String, TokenBucket> buckets = new ConcurrentHashMap<>();
-    private static final int LIMIT = 1000;
-    private static final double REFILL_RATE = 1000.0 / 3600.0;
-
-    public Result checkRateLimit(String clientId) {
-        TokenBucket bucket = buckets.computeIfAbsent(clientId,
-                k -> new TokenBucket(LIMIT, REFILL_RATE));
-        return bucket.allowRequest();
-    }
-
-    public Status getRateLimitStatus(String clientId) {
-        TokenBucket bucket = buckets.computeIfAbsent(clientId,
-                k -> new TokenBucket(LIMIT, REFILL_RATE));
-        return bucket.getStatus();
-    }
-}
-
-class Main {
     public static void main(String[] args) {
 
-        RateLimiter limiter = new RateLimiter();
+        AutocompleteSystem system = new AutocompleteSystem();
 
-        for (int i = 0; i < 1002; i++) {
-            Result r = limiter.checkRateLimit("abc123");
+        // Sample queries
+        system.insert("java tutorial");
+        system.insert("javascript");
+        system.insert("java download");
+        system.insert("java features");
+        system.insert("java tutorial");
+        system.insert("java tutorial");
+        system.insert("java compiler");
+        system.insert("java hashmap");
+        system.insert("java stream api");
 
-            if (r.allowed) {
-                System.out.println("Allowed (" + r.remaining + " requests remaining)");
-            } else {
-                System.out.println("Denied (0 requests remaining, retry after " + r.retryAfter + "s)");
+        Scanner sc = new Scanner(System.in);
+
+        while (true) {
+
+            System.out.println("\n1. Search");
+            System.out.println("2. Update Frequency");
+            System.out.println("3. Exit");
+
+            int choice = sc.nextInt();
+            sc.nextLine();
+
+            if (choice == 1) {
+
+                System.out.print("Enter prefix: ");
+                String prefix = sc.nextLine();
+
+                List<String> suggestions = system.search(prefix);
+
+                System.out.println("\nTop Suggestions:");
+
+                int rank = 1;
+
+                for (String s : suggestions) {
+                    System.out.println(rank + ". " + s + " (" + system.frequencyMap.get(s) + " searches)");
+                    rank++;
+                }
+            }
+
+            else if (choice == 2) {
+
+                System.out.print("Enter query: ");
+                String query = sc.nextLine();
+
+                system.updateFrequency(query);
+
+                System.out.println("Updated Frequency: " + system.frequencyMap.get(query));
+            }
+
+            else {
+                break;
             }
         }
 
-        Status status = limiter.getRateLimitStatus("abc123");
-        System.out.println("{used: " + status.used + ", limit: " + status.limit + ", reset: " + status.reset + "}");
+        sc.close();
     }
 }
