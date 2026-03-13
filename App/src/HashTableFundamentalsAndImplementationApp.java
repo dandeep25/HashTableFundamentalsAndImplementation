@@ -1,56 +1,44 @@
 import java.util.*;
 
-class UsernameChecker {
-    private HashMap<String, Integer> userMap = new HashMap<>();
-    private HashMap<String, Integer> attemptCount = new HashMap<>();
+class FlashSaleInventoryManager {
 
-    public UsernameChecker() {
-        userMap.put("virat_kohli", 1);
-        userMap.put("admin", 2);
-        userMap.put("user123", 3);
+    private Map<String, Integer> stock = new HashMap<>();
+    private Map<String, LinkedHashMap<Integer, Boolean>> waitingList = new HashMap<>();
+
+    public FlashSaleInventoryManager() {
+        stock.put("IPHONE15_256GB", 100);
+        waitingList.put("IPHONE15_256GB", new LinkedHashMap<>());
     }
 
-    public boolean checkAvailability(String username) {
-        attemptCount.put(username, attemptCount.getOrDefault(username, 0) + 1);
-        return !userMap.containsKey(username);
+    public int checkStock(String productId) {
+        return stock.getOrDefault(productId, 0);
     }
 
-    public List<String> suggestAlternatives(String username) {
-        List<String> suggestions = new ArrayList<>();
-        if (!userMap.containsKey(username)) {
-            suggestions.add(username);
-            return suggestions;
-        }
-        for (int i = 1; i <= 5; i++) {
-            String candidate = username + i;
-            if (!userMap.containsKey(candidate)) {
-                suggestions.add(candidate);
-            }
-        }
-        String modified = username.replace("_", ".");
-        if (!userMap.containsKey(modified)) {
-            suggestions.add(modified);
-        }
-        return suggestions;
-    }
+    public synchronized String purchaseItem(String productId, int userId) {
+        int currentStock = stock.getOrDefault(productId, 0);
 
-    public String getMostAttempted() {
-        String result = null;
-        int max = 0;
-        for (Map.Entry<String, Integer> entry : attemptCount.entrySet()) {
-            if (entry.getValue() > max) {
-                max = entry.getValue();
-                result = entry.getKey();
-            }
+        if (currentStock > 0) {
+            stock.put(productId, currentStock - 1);
+            return "Success, " + (currentStock - 1) + " units remaining";
+        } else {
+            LinkedHashMap<Integer, Boolean> queue = waitingList.get(productId);
+            queue.put(userId, true);
+            int position = queue.size();
+            return "Added to waiting list, position #" + position;
         }
-        return result;
     }
 
     public static void main(String[] args) {
-        UsernameChecker checker = new UsernameChecker();
-        System.out.println(checker.checkAvailability("virat_kohli"));
-        System.out.println(checker.checkAvailability("kajal_agarwal"));
-        System.out.println(checker.suggestAlternatives("virat_kohli"));
-        System.out.println(checker.getMostAttempted());
+        FlashSaleInventoryManager manager = new FlashSaleInventoryManager();
+
+        System.out.println(manager.checkStock("IPHONE15_256GB"));
+        System.out.println(manager.purchaseItem("IPHONE15_256GB", 12345));
+        System.out.println(manager.purchaseItem("IPHONE15_256GB", 67890));
+
+        for (int i = 0; i < 100; i++) {
+            manager.purchaseItem("IPHONE15_256GB", i);
+        }
+
+        System.out.println(manager.purchaseItem("IPHONE15_256GB", 99999));
     }
 }
