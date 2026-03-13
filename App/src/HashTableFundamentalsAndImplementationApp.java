@@ -1,165 +1,162 @@
 import java.util.*;
 
-// Vehicle record
-class Vehicle {
-    String licensePlate;
-    long entryTime;
+class Transaction {
+    int id;
+    int amount;
+    String merchant;
+    String account;
+    int time; // minutes from start of day
 
-    Vehicle(String plate) {
-        this.licensePlate = plate;
-        this.entryTime = System.currentTimeMillis();
+    Transaction(int id, int amount, String merchant, String account, int time) {
+        this.id = id;
+        this.amount = amount;
+        this.merchant = merchant;
+        this.account = account;
+        this.time = time;
     }
 }
 
-public class ParkingLotSystem {
+public class TransactionAnalyzer {
 
-    static final int SIZE = 500;
+    List<Transaction> transactions = new ArrayList<>();
 
-    Vehicle[] parkingTable = new Vehicle[SIZE];
-
-    int occupiedSpots = 0;
-    int totalProbes = 0;
-    int totalParks = 0;
-
-    // Hash function
-    private int hash(String licensePlate) {
-        return Math.abs(licensePlate.hashCode()) % SIZE;
+    // Add transaction
+    public void addTransaction(Transaction t) {
+        transactions.add(t);
     }
 
-    // Park vehicle using linear probing
-    public void parkVehicle(String plate) {
+    // Classic Two-Sum
+    public void findTwoSum(int target) {
 
-        int index = hash(plate);
-        int probes = 0;
+        HashMap<Integer, Transaction> map = new HashMap<>();
 
-        while (parkingTable[index] != null) {
+        for (Transaction t : transactions) {
 
-            index = (index + 1) % SIZE;
-            probes++;
+            int complement = target - t.amount;
 
-            if (probes >= SIZE) {
-                System.out.println("Parking Full!");
-                return;
-            }
-        }
+            if (map.containsKey(complement)) {
 
-        parkingTable[index] = new Vehicle(plate);
+                Transaction other = map.get(complement);
 
-        occupiedSpots++;
-        totalProbes += probes;
-        totalParks++;
-
-        System.out.println("Vehicle " + plate + " parked at spot #" + index +
-                " (" + probes + " probes)");
-    }
-
-    // Exit vehicle
-    public void exitVehicle(String plate) {
-
-        int index = hash(plate);
-        int probes = 0;
-
-        while (parkingTable[index] != null && probes < SIZE) {
-
-            if (parkingTable[index].licensePlate.equals(plate)) {
-
-                long entryTime = parkingTable[index].entryTime;
-                long exitTime = System.currentTimeMillis();
-
-                long durationMillis = exitTime - entryTime;
-
-                double hours = durationMillis / (1000.0 * 60 * 60);
-
-                double fee = Math.ceil(hours) * 5;
-
-                parkingTable[index] = null;
-                occupiedSpots--;
-
-                System.out.println("Vehicle exited from spot #" + index);
-                System.out.println("Duration: " + String.format("%.2f", hours) + " hours");
-                System.out.println("Fee: $" + fee);
-
-                return;
+                System.out.println("Two-Sum Pair: "
+                        + other.id + " + " + t.id
+                        + " = " + target);
             }
 
-            index = (index + 1) % SIZE;
-            probes++;
+            map.put(t.amount, t);
         }
-
-        System.out.println("Vehicle not found!");
     }
 
-    // Find nearest available spot
-    public void findNearestSpot() {
+    // Two-Sum within 1 hour (60 minutes)
+    public void twoSumWithinHour(int target) {
 
-        for (int i = 0; i < SIZE; i++) {
+        HashMap<Integer, Transaction> map = new HashMap<>();
 
-            if (parkingTable[i] == null) {
-                System.out.println("Nearest available spot: #" + i);
-                return;
+        for (Transaction t : transactions) {
+
+            int complement = target - t.amount;
+
+            if (map.containsKey(complement)) {
+
+                Transaction other = map.get(complement);
+
+                if (Math.abs(t.time - other.time) <= 60) {
+
+                    System.out.println("Two-Sum within 1hr: "
+                            + other.id + " + " + t.id);
+                }
+            }
+
+            map.put(t.amount, t);
+        }
+    }
+
+    // Duplicate detection
+    public void detectDuplicates() {
+
+        HashMap<String, List<Transaction>> map = new HashMap<>();
+
+        for (Transaction t : transactions) {
+
+            String key = t.amount + "-" + t.merchant;
+
+            map.putIfAbsent(key, new ArrayList<>());
+            map.get(key).add(t);
+        }
+
+        for (String key : map.keySet()) {
+
+            List<Transaction> list = map.get(key);
+
+            if (list.size() > 1) {
+
+                System.out.println("Duplicate Transactions:");
+
+                for (Transaction t : list) {
+                    System.out.println("ID: " + t.id +
+                            " Account: " + t.account +
+                            " Amount: " + t.amount +
+                            " Merchant: " + t.merchant);
+                }
             }
         }
-
-        System.out.println("Parking Full!");
     }
 
-    // Parking statistics
-    public void getStatistics() {
+    // K-Sum
+    public void findKSum(int k, int target) {
 
-        double occupancy = ((double) occupiedSpots / SIZE) * 100;
+        List<Integer> amounts = new ArrayList<>();
 
-        double avgProbes = totalParks == 0 ? 0 : (double) totalProbes / totalParks;
+        for (Transaction t : transactions) {
+            amounts.add(t.amount);
+        }
 
-        System.out.println("\nParking Statistics");
-        System.out.println("-------------------");
-        System.out.println("Occupancy: " + String.format("%.2f", occupancy) + "%");
-        System.out.println("Average Probes: " + String.format("%.2f", avgProbes));
-        System.out.println("Total Vehicles Parked: " + totalParks);
+        kSumHelper(amounts, k, target, 0, new ArrayList<>());
+    }
+
+    private void kSumHelper(List<Integer> nums, int k, int target,
+                            int start, List<Integer> path) {
+
+        if (k == 0 && target == 0) {
+
+            System.out.println("K-Sum Combination: " + path);
+            return;
+        }
+
+        if (k == 0 || start >= nums.size())
+            return;
+
+        for (int i = start; i < nums.size(); i++) {
+
+            path.add(nums.get(i));
+
+            kSumHelper(nums, k - 1,
+                    target - nums.get(i),
+                    i + 1, path);
+
+            path.remove(path.size() - 1);
+        }
     }
 
     public static void main(String[] args) {
 
-        ParkingLotSystem system = new ParkingLotSystem();
+        TransactionAnalyzer analyzer = new TransactionAnalyzer();
 
-        Scanner sc = new Scanner(System.in);
+        analyzer.addTransaction(new Transaction(1, 500, "StoreA", "acc1", 600));
+        analyzer.addTransaction(new Transaction(2, 300, "StoreB", "acc2", 615));
+        analyzer.addTransaction(new Transaction(3, 200, "StoreC", "acc3", 630));
+        analyzer.addTransaction(new Transaction(4, 500, "StoreA", "acc4", 640));
 
-        while (true) {
+        System.out.println("\n--- Two Sum ---");
+        analyzer.findTwoSum(500);
 
-            System.out.println("\n1. Park Vehicle");
-            System.out.println("2. Exit Vehicle");
-            System.out.println("3. Find Nearest Spot");
-            System.out.println("4. Statistics");
-            System.out.println("5. Exit");
+        System.out.println("\n--- Two Sum within 1 hour ---");
+        analyzer.twoSumWithinHour(500);
 
-            int choice = sc.nextInt();
-            sc.nextLine();
+        System.out.println("\n--- Duplicate Detection ---");
+        analyzer.detectDuplicates();
 
-            switch (choice) {
-
-                case 1:
-                    System.out.print("Enter license plate: ");
-                    String plate = sc.nextLine();
-                    system.parkVehicle(plate);
-                    break;
-
-                case 2:
-                    System.out.print("Enter license plate: ");
-                    plate = sc.nextLine();
-                    system.exitVehicle(plate);
-                    break;
-
-                case 3:
-                    system.findNearestSpot();
-                    break;
-
-                case 4:
-                    system.getStatistics();
-                    break;
-
-                case 5:
-                    System.out.println("System closed");
-                    return;
-            }
-        }
+        System.out.println("\n--- K Sum ---");
+        analyzer.findKSum(3, 1000);
     }
 }
