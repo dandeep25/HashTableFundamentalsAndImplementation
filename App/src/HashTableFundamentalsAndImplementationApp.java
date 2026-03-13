@@ -12,16 +12,15 @@ class Video {
 
  class MultiLevelCache {
 
-    // L1 Cache (LRU using LinkedHashMap)
     private LinkedHashMap<String, Video> L1;
 
-    // L2 Cache
+    
     private LinkedHashMap<String, Video> L2;
 
-    // L3 Database
+ 
     private HashMap<String, Video> L3;
 
-    // Access counter
+  
     private HashMap<String, Integer> accessCount;
 
     int L1_CAPACITY = 10000;
@@ -49,17 +48,16 @@ class Video {
         };
     }
 
-    // Simulated database insert
     public void addVideoToDatabase(String id, String data) {
         L3.put(id, new Video(id, data));
     }
 
-    // Get video
+   
     public Video getVideo(String videoId) {
 
         long start = System.currentTimeMillis();
 
-        // L1 Cache
+       
         if (L1.containsKey(videoId)) {
 
             L1Hits++;
@@ -70,7 +68,6 @@ class Video {
 
         System.out.println("L1 Cache MISS");
 
-        // L2 Cache
         if (L2.containsKey(videoId)) {
 
             L2Hits++;
@@ -85,7 +82,7 @@ class Video {
 
         System.out.println("L2 Cache MISS");
 
-        // L3 Database
+        
         if (L3.containsKey(videoId)) {
 
             L3Hits++;
@@ -105,7 +102,7 @@ class Video {
         return null;
     }
 
-    // Promote video from L2 → L1
+    
     private void promoteToL1(String id, Video v) {
 
         int count = accessCount.getOrDefault(id, 0) + 1;
@@ -119,7 +116,7 @@ class Video {
         }
     }
 
-    // Invalidate cache
+ 
     public void invalidate(String videoId) {
 
         L1.remove(videoId);
@@ -129,7 +126,7 @@ class Video {
         System.out.println("Cache invalidated for video: " + videoId);
     }
 
-    // Statistics
+   
     public void getStatistics() {
 
         int total = L1Hits + L2Hits + L3Hits;
@@ -156,7 +153,7 @@ class Video {
 
         MultiLevelCache cache = new MultiLevelCache();
 
-        // Add videos to database
+      
         cache.addVideoToDatabase("video_123", "Movie Data");
         cache.addVideoToDatabase("video_999", "Series Data");
 
