@@ -1,146 +1,165 @@
 import java.util.*;
 
-// Trie Node
-class TrieNode {
-    Map<Character, TrieNode> children;
-    boolean isEnd;
+// Vehicle record
+class Vehicle {
+    String licensePlate;
+    long entryTime;
 
-    TrieNode() {
-        children = new HashMap<>();
-        isEnd = false;
+    Vehicle(String plate) {
+        this.licensePlate = plate;
+        this.entryTime = System.currentTimeMillis();
     }
 }
 
-// Autocomplete System
-class AutocompleteSystem {
+public class ParkingLotSystem {
 
-    TrieNode root;
-    HashMap<String, Integer> frequencyMap;
+    static final int SIZE = 500;
 
-    public AutocompleteSystem() {
-        root = new TrieNode();
-        frequencyMap = new HashMap<>();
+    Vehicle[] parkingTable = new Vehicle[SIZE];
+
+    int occupiedSpots = 0;
+    int totalProbes = 0;
+    int totalParks = 0;
+
+    // Hash function
+    private int hash(String licensePlate) {
+        return Math.abs(licensePlate.hashCode()) % SIZE;
     }
 
-    // Insert query
-    public void insert(String query) {
+    // Park vehicle using linear probing
+    public void parkVehicle(String plate) {
 
-        TrieNode node = root;
+        int index = hash(plate);
+        int probes = 0;
 
-        for (char c : query.toCharArray()) {
-            node.children.putIfAbsent(c, new TrieNode());
-            node = node.children.get(c);
-        }
+        while (parkingTable[index] != null) {
 
-        node.isEnd = true;
+            index = (index + 1) % SIZE;
+            probes++;
 
-        frequencyMap.put(query, frequencyMap.getOrDefault(query, 0) + 1);
-    }
-
-    // Update frequency when searched again
-    public void updateFrequency(String query) {
-        insert(query);
-    }
-
-    // Search suggestions
-    public List<String> search(String prefix) {
-
-        TrieNode node = root;
-
-        for (char c : prefix.toCharArray()) {
-            if (!node.children.containsKey(c)) {
-                return new ArrayList<>();
+            if (probes >= SIZE) {
+                System.out.println("Parking Full!");
+                return;
             }
-            node = node.children.get(c);
         }
 
-        List<String> results = new ArrayList<>();
+        parkingTable[index] = new Vehicle(plate);
 
-        dfs(node, prefix, results);
+        occupiedSpots++;
+        totalProbes += probes;
+        totalParks++;
 
-        // Sort by frequency (highest first)
-        results.sort((a, b) -> frequencyMap.get(b) - frequencyMap.get(a));
-
-        if (results.size() > 10)
-            return results.subList(0, 10);
-
-        return results;
+        System.out.println("Vehicle " + plate + " parked at spot #" + index +
+                " (" + probes + " probes)");
     }
 
-    // DFS to collect words
-    private void dfs(TrieNode node, String word, List<String> results) {
+    // Exit vehicle
+    public void exitVehicle(String plate) {
 
-        if (node.isEnd) {
-            results.add(word);
+        int index = hash(plate);
+        int probes = 0;
+
+        while (parkingTable[index] != null && probes < SIZE) {
+
+            if (parkingTable[index].licensePlate.equals(plate)) {
+
+                long entryTime = parkingTable[index].entryTime;
+                long exitTime = System.currentTimeMillis();
+
+                long durationMillis = exitTime - entryTime;
+
+                double hours = durationMillis / (1000.0 * 60 * 60);
+
+                double fee = Math.ceil(hours) * 5;
+
+                parkingTable[index] = null;
+                occupiedSpots--;
+
+                System.out.println("Vehicle exited from spot #" + index);
+                System.out.println("Duration: " + String.format("%.2f", hours) + " hours");
+                System.out.println("Fee: $" + fee);
+
+                return;
+            }
+
+            index = (index + 1) % SIZE;
+            probes++;
         }
 
-        for (char c : node.children.keySet()) {
-            dfs(node.children.get(c), word + c, results);
-        }
+        System.out.println("Vehicle not found!");
     }
-}
 
-// Main class
-public class Main {
+    // Find nearest available spot
+    public void findNearestSpot() {
+
+        for (int i = 0; i < SIZE; i++) {
+
+            if (parkingTable[i] == null) {
+                System.out.println("Nearest available spot: #" + i);
+                return;
+            }
+        }
+
+        System.out.println("Parking Full!");
+    }
+
+    // Parking statistics
+    public void getStatistics() {
+
+        double occupancy = ((double) occupiedSpots / SIZE) * 100;
+
+        double avgProbes = totalParks == 0 ? 0 : (double) totalProbes / totalParks;
+
+        System.out.println("\nParking Statistics");
+        System.out.println("-------------------");
+        System.out.println("Occupancy: " + String.format("%.2f", occupancy) + "%");
+        System.out.println("Average Probes: " + String.format("%.2f", avgProbes));
+        System.out.println("Total Vehicles Parked: " + totalParks);
+    }
 
     public static void main(String[] args) {
 
-        AutocompleteSystem system = new AutocompleteSystem();
-
-        // Sample queries
-        system.insert("java tutorial");
-        system.insert("javascript");
-        system.insert("java download");
-        system.insert("java features");
-        system.insert("java tutorial");
-        system.insert("java tutorial");
-        system.insert("java compiler");
-        system.insert("java hashmap");
-        system.insert("java stream api");
+        ParkingLotSystem system = new ParkingLotSystem();
 
         Scanner sc = new Scanner(System.in);
 
         while (true) {
 
-            System.out.println("\n1. Search");
-            System.out.println("2. Update Frequency");
-            System.out.println("3. Exit");
+            System.out.println("\n1. Park Vehicle");
+            System.out.println("2. Exit Vehicle");
+            System.out.println("3. Find Nearest Spot");
+            System.out.println("4. Statistics");
+            System.out.println("5. Exit");
 
             int choice = sc.nextInt();
             sc.nextLine();
 
-            if (choice == 1) {
+            switch (choice) {
 
-                System.out.print("Enter prefix: ");
-                String prefix = sc.nextLine();
+                case 1:
+                    System.out.print("Enter license plate: ");
+                    String plate = sc.nextLine();
+                    system.parkVehicle(plate);
+                    break;
 
-                List<String> suggestions = system.search(prefix);
+                case 2:
+                    System.out.print("Enter license plate: ");
+                    plate = sc.nextLine();
+                    system.exitVehicle(plate);
+                    break;
 
-                System.out.println("\nTop Suggestions:");
+                case 3:
+                    system.findNearestSpot();
+                    break;
 
-                int rank = 1;
+                case 4:
+                    system.getStatistics();
+                    break;
 
-                for (String s : suggestions) {
-                    System.out.println(rank + ". " + s + " (" + system.frequencyMap.get(s) + " searches)");
-                    rank++;
-                }
-            }
-
-            else if (choice == 2) {
-
-                System.out.print("Enter query: ");
-                String query = sc.nextLine();
-
-                system.updateFrequency(query);
-
-                System.out.println("Updated Frequency: " + system.frequencyMap.get(query));
-            }
-
-            else {
-                break;
+                case 5:
+                    System.out.println("System closed");
+                    return;
             }
         }
-
-        sc.close();
     }
 }
