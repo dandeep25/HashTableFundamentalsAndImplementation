@@ -16,7 +16,7 @@ class Transaction {
     }
 }
 
-public class TransactionAnalyzer {
+ class TransactionAnalyzer {
 
     List<Transaction> transactions = new ArrayList<>();
 
