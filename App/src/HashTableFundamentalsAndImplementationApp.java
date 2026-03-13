@@ -1,6 +1,6 @@
 import java.util.*;
 
-// Trie Node
+
 class TrieNode {
     Map<Character, TrieNode> children;
     boolean isEnd;
@@ -11,7 +11,7 @@ class TrieNode {
     }
 }
 
-// Autocomplete System
+
 class AutocompleteSystem {
 
     TrieNode root;
@@ -22,7 +22,7 @@ class AutocompleteSystem {
         frequencyMap = new HashMap<>();
     }
 
-    // Insert query
+  
     public void insert(String query) {
 
         TrieNode node = root;
@@ -37,12 +37,12 @@ class AutocompleteSystem {
         frequencyMap.put(query, frequencyMap.getOrDefault(query, 0) + 1);
     }
 
-    // Update frequency when searched again
+   
     public void updateFrequency(String query) {
         insert(query);
     }
 
-    // Search suggestions
+
     public List<String> search(String prefix) {
 
         TrieNode node = root;
@@ -58,7 +58,7 @@ class AutocompleteSystem {
 
         dfs(node, prefix, results);
 
-        // Sort by frequency (highest first)
+       
         results.sort((a, b) -> frequencyMap.get(b) - frequencyMap.get(a));
 
         if (results.size() > 10)
@@ -67,7 +67,7 @@ class AutocompleteSystem {
         return results;
     }
 
-    // DFS to collect words
+  
     private void dfs(TrieNode node, String word, List<String> results) {
 
         if (node.isEnd) {
@@ -80,14 +80,13 @@ class AutocompleteSystem {
     }
 }
 
-// Main class
 public class Main {
 
     public static void main(String[] args) {
 
         AutocompleteSystem system = new AutocompleteSystem();
 
-        // Sample queries
+      
         system.insert("java tutorial");
         system.insert("javascript");
         system.insert("java download");
