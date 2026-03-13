@@ -10,7 +10,7 @@ class Video {
     }
 }
 
-public class MultiLevelCache {
+ class MultiLevelCache {
 
     // L1 Cache (LRU using LinkedHashMap)
     private LinkedHashMap<String, Video> L1;
